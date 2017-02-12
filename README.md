@@ -1,23 +1,8 @@
-# Node.js SDK for VKontakte API
-
-```javascript
-'use strict';
-
-const VKApi = require('node-vkapi');
-const VK    = new VKApi();
-
-VK.call('users.get', {
-  user_ids: '1'
-}).then(res => {
-  console.log(res);
-});
-```
-
-## Installation
+# node-vkapi &middot; [![npm](https://img.shields.io/npm/v/node-vkapi.svg)]() [![npm](https://img.shields.io/npm/dt/node-vkapi.svg)]()
 
     $ npm install node-vkapi --only=prod --save
     
-## Features
+### Features
 
 * Calling all VK API methods
 * Getting user `access_token` using:
@@ -27,7 +12,7 @@ VK.call('users.get', {
 * Uploading files to vk.com
 * Recognizing captcha
 
-## Example
+### Example
 
 ```javascript
 const VKApi = require('node-vkapi');
@@ -62,12 +47,12 @@ VK.auth.user({
 });
 ```
 
-## API Reference
+### API Reference
 
 All methods, except `vkapi.setOptions`, return `Promise(response)`.  
 Method `vkapi.setOptions` returns `this`.
 
-### new vkapi(options):
+#### new vkapi(options):
 * `options` (Object):
     * `app` (Object): 
         * `id` (Number): Application ID
@@ -86,7 +71,7 @@ Method `vkapi.setOptions` returns `this`.
 
 You must specify parameter `auth` only if you plan to receive `access_token` by the login and password.
 
-### vkapi.call(method, params):  
+#### vkapi.call(method, params):  
 * `method` (String)
 * `params` (Object):
     * `< .. method params .. >`
@@ -98,12 +83,12 @@ You must specify parameter `access_token` if the VK API method requires it, but 
 
 If `ETIMEDOUT` or similar error occurs, function does not return it and tries to resend a request with same params. 
 
-### vkapi.auth.server():  
+#### vkapi.auth.server():  
 
 Getting server `access_token`. 
 More details: [vk.com/dev/auth_server](https://vk.com/dev/auth_server), [vk.com/dev/secure](https://vk.com/dev/secure)
 
-### vkapi.auth.user(params):  
+#### vkapi.auth.user(params):  
 * `params` (Object):
     * `type` (String): `android` or `null`
     * `scope` (String or Array): Permissions ([vk.com/dev/permissions](https://vk.com/dev/permissions))
@@ -115,7 +100,7 @@ Before using this method recommended to provide a phone number in `vkapi.options
 
 If `access_token` was got successfully, it will be saved in `vkapi.options.token`.
 
-### vkapi.upload(type, params):
+#### vkapi.upload(type, params):
 * `type` (String): One of given [types of uploads](#types-of-uploads)
 * `params` (Object):
     * `data` (Readable Stream): or Array of Readable Streams (only for `photo_album` type)
@@ -124,7 +109,7 @@ If `access_token` was got successfully, it will be saved in `vkapi.options.token
 
 Keep in mind, that to upload files you must have the appropriate permissions.
 
-#### Types of uploads
+##### Types of uploads
 * `audio`
 * `audio_msg` [*](https://github.com/olnaz/node-vkapi/blob/master/lib/files-upload.js#L47)
 * `video`
@@ -137,7 +122,7 @@ Keep in mind, that to upload files you must have the appropriate permissions.
 * `photo_market`
 * `photo_market_album`
 
-#### Example of uploading
+##### Example of uploading
 
 ```javascript
 // upload 'photo_wall', then post it to own wall
@@ -165,5 +150,5 @@ VK.upload('photo_wall', {
   .catch(e => console.log(e));
 ```
 
-### vkapi.setOptions(options):  
+#### vkapi.setOptions(options):  
 * `options` (Object): [Constructor object](#new-vkapioptions)
