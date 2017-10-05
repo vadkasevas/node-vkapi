@@ -7,7 +7,7 @@
     "type": "git",
     "url": "git@github.com:olnaz/node-vkapi.git"
   },
-  "main": "./lib/vkapi.js",
+  "main": "./src/vkapi.js",
   "scripts": {
     "test": "./node_modules/.bin/ava"
   },
@@ -21,6 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "cheerio": "^0.20.0",
+    "node-fetch": "^1.7.3",
     "request": "^2.79.0",
     "request-promise": "^2.0.1"
   },
