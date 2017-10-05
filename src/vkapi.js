@@ -11,32 +11,62 @@ const CaptchaRecognizer = require('./captcha-recognizer');
 const extendOptions     = require('./helpers/options-extend');
 const filesUpload       = require('./files-upload');
 
-/**
- * Local constants.
- * @private
- */
-const MAX_SCOPE = 'notify,friends,photos,audio,video,docs,notes,pages,status,offers,questions,wall,groups,messages,email,notifications,stats,ads,market,offline';
+const defaultOptions = {
+  /**
+   * User access token to use.
+   * @type {String}
+   */
+  accessToken: null,
+
+  /**
+   * VK API version to use.
+   * @type {String}
+   */
+  apiVersion: '5.68',
+
+  /**
+   * VK application ID.
+   * @type {Number}
+   */
+  appId: null,
+
+  /**
+   * VK application secret key.
+   * @type {String}
+   */
+  appSecret: null,
+
+  /**
+   * Captcha service API key.
+   * @type {String}
+   */
+  captchaApiKey: null,
+
+  /**
+   * Captcha service.
+   * @type {String}
+   *
+   * Supported services:
+   *   anti-captcha
+   *   antigate
+   *   rucaptcha
+   */
+  captchaService: 'anti-captcha',
+
+  userLogin: null,
+  userPassword: null,
+  userPhone: null
+}
 
 class VKApi {
   constructor (options = {}) {
     let defaultOptions = {
-      app: {
-        secret: null, // String
-        id:     null  // Number
-      }, 
-
       auth: {
         login: null, // String
         pass:  null, // String
         phone: null  // String
-      }, 
+      },
 
-      captcha: {
-        service: 'anti-captcha', // String (one of these services: rucaptcha, antigate, anti-captcha)
-        key:     null            // String (service API-key)
-      }, 
-
-      delays:  true,  // Boolean
       token:   null,  // String
       version: '5.60' // String
     };
@@ -56,7 +86,7 @@ class VKApi {
    * @private
    */
   get _delay () {
-    if (this.options.delays === false) 
+    if (this.options.delays === false)
       return 0;
 
     let dateNow = Date.now();
@@ -65,7 +95,7 @@ class VKApi {
     if ((dateNow - this._delays[0]) < 334) {
       delay = 334 - (dateNow - this._delays[0]);
 
-      if ((dateNow - this._delays[1]) <= 0) 
+      if ((dateNow - this._delays[1]) <= 0)
         delay = this._delays[1] - dateNow + 334;
 
       this._delays[1] = delay + dateNow;
@@ -103,28 +133,28 @@ class VKApi {
        * @return {Promise}
        */
       user: ({ type, scope } = {}) => {
-        if (!this.options.auth.login || !this.options.auth.pass) 
+        if (!this.options.auth.login || !this.options.auth.pass)
           return Promise.reject(new Error('"auth.login" or "auth.pass" is undefined'));
 
         // Set the maximum permissions
-        if (scope === 'all') 
+        if (scope === 'all')
           scope = MAX_SCOPE;
 
         return (type === 'android' ? authUserAndroid : authUser).call(this, scope);
-      }, 
+      },
 
       /**
        * Server authorization
        * @return {Promise}
        */
       server: () => {
-        if (!this.options.app.id || !this.options.app.secret) 
+        if (!this.options.app.id || !this.options.app.secret)
           return Promise.reject(new Error('"app.id" or "app.secret" is undefined'));
 
         return this._request('https://oauth.vk.com/access_token', {
-          client_id:     this.options.app.id, 
-          client_secret: this.options.app.secret, 
-          grant_type:    'client_credentials', 
+          client_id:     this.options.app.id,
+          client_secret: this.options.app.secret,
+          grant_type:    'client_credentials',
           v:             this.options.version
         });
       }
@@ -139,11 +169,11 @@ class VKApi {
    * @public
    */
   call (method = '', params = {}) {
-    if (typeof method !== 'string') 
+    if (typeof method !== 'string')
       return Promise.reject(new TypeError('"method" must be a string.'));
 
     return this._request(`https://api.vk.com/method/${method}`, Object.assign({
-      v: this.options.version, 
+      v: this.options.version,
       access_token: this.options.token || ''
     }, params));
   }
