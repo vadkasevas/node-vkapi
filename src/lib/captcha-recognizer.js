@@ -14,7 +14,7 @@
  * @private
  */
 const { URLSearchParams } = require('url');
-const fetch               = require('./lib/fetch');
+const fetch               = require('./fetch');
 
 class CaptchaRecognizer {
   /**
