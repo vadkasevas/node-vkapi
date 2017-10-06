@@ -42,7 +42,7 @@ class CaptchaRecognizer {
      * How many times we have waited for captcha recognizing.
      * @type {Number}
      */
-    this.waitsCount = 0;
+    this._waitsCount = 0;
   }
 
   /**
@@ -111,9 +111,9 @@ class CaptchaRecognizer {
    * @private
    */
   _wait (captchaId, fromChecking) {
-    return new Promise(resolve => setTimeout(() => resolve(), this.waitsCount === 0 ? 10000 : 5000))
+    return new Promise(resolve => setTimeout(() => resolve(), this._waitsCount === 0 ? 10000 : 5000))
       .then(() => {
-        this.waitsCount++;
+        this._waitsCount++;
 
         return fromChecking ? this._check(captchaId) : captchaId;
       });
