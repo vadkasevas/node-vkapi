@@ -51,6 +51,7 @@ vkapi.call('users.get', {
 
 ### vkapi.authorize(params)
 * `params<Object>` [Параметры](#params) запроса
+* Returns [`Promise<AuthResponseObject>`](#Формат-ответа-на-запрос-авторизации)
 
 Осуществляет *прямую авторизацию*, т.е. авторизует пользователя в одном из официальных приложений ВКонтакте, используя логин и пароль пользователя.
 
@@ -69,11 +70,13 @@ vkapi.call('users.get', {
 ### vkapi.call(method[, params])
 * `method<String>` Название метода
 * `params<Object>` Параметры метода
+* Returns `Promise<Any>`
 
 Вызывает методы API ВКонтакте.
 
 ### vkapi.logIn(params)
 * `params<Object>` [Параметры](#params-1) запроса
+* Returns [`Promise<AuthResponseObject>`](#Формат-ответа-на-запрос-авторизации)
 
 Авторизует пользователя через мобильную Web-версию ВКонтакте.  
 При этом есть возможность использовать ID **неофициального** приложения.
@@ -95,6 +98,7 @@ vkapi.call('users.get', {
 * `files<Any>` [Файл(ы)](#files) к загрузке
 * `params<Object>` Параметры запроса на получение URL для загрузки. [Подробнее](https://vk.com/dev/upload_files)
 * `afterUploadParams<Object>` Параметры запроса на сохранение загруженного файла. [Подробнее](https://vk.com/dev/upload_files)
+* Returns `Promise<Any>`
 
 Выполняет загрузку файлов во ВКонтакте.  
 
@@ -124,3 +128,15 @@ vkapi.call('users.get', {
 
 #### Пример загрузки файла
 Примеры загрузки файлов вы можете найти в папке [examples](examples).
+
+#### Формат ответа на запрос авторизации
+Функции `vkapi.authorize()` и `vkapi.logIn()` возвращают ответ в одинаковом формате.
+
+```javascript
+{
+  access_token // <String> Ключ доступа
+  expires_in   // <Number> Время в секундах, через которое ключ станет недействительным
+  user_id      // <Number> ID пользователя
+  ?email       // <String> E-mail пользователя. Включается в ответ, если был запрошен в параметре "scope" при авторизации
+}
+```
