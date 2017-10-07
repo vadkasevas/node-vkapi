@@ -4,13 +4,22 @@
  * Module dependencies.
  * @private
  */
-const apiRequest        = require('./api-request');
-const authUser          = require('./auth/user/by-login');
-const authUserAndroid   = require('./auth/user/by-login-android');
-const CaptchaRecognizer = require('./captcha-recognizer');
-const extendOptions     = require('./helpers/options-extend');
-const filesUpload       = require('./files-upload');
+const querystring          = require('querystring');
+const { URLSearchParams }  = require('url');
+const cheerio              = require('cheerio');
+const fetchCookieDecorator = require('fetch-cookie/node-fetch');
+const FormData             = require('form-data');
+const CaptchaRecognizer    = require('./lib/captcha-recognizer');
+const fetch                = require('./lib/fetch');
+const VkApiError           = require('./errors/api-error');
+const VkAuthError          = require('./errors/auth-error');
+const VkUploadError        = require('./errors/upload-error');
+const constants            = require('./constants');
 
+/**
+ * VkApi default options.
+ * @type {Object}
+ */
 const defaultOptions = {
   /**
    * User access token to use.
@@ -53,26 +62,39 @@ const defaultOptions = {
    */
   captchaService: 'anti-captcha',
 
+  /**
+   * User login.
+   * @type {String}
+   *
+   * Can be an e-mail or a phone number.
+   */
   userLogin: null,
-  userPassword: null,
-  userPhone: null
+
+  /**
+   * User password.
+   * @type {String}
+   */
+  userPassword: null
 }
 
-class VKApi {
+class VkApi {
+  /**
+   * Constructor.
+   * @param  {Object} options Options
+   * @return {this}
+   */
   constructor (options = {}) {
-    let defaultOptions = {
-      auth: {
-        login: null, // String
-        pass:  null, // String
-        phone: null  // String
-      },
+    /**
+     * Options.
+     * @type {Object}
+     */
+    this.options = Object.assign(defaultOptions, options);
 
-      token:   null,  // String
-      version: '5.60' // String
-    };
-
-    this.options           = extendOptions(defaultOptions, options);
-    this.captchaRecognizer = (options.captcha && options.captcha.key) ? new CaptchaRecognizer(this.options.captcha) : null;
+    /**
+     * CaptchaRecognizer instance.
+     * @type {CaptchaRecognizer}
+     */
+    this.captchaRecognizer = this.options.captchaApiKey ? new CaptchaRecognizer(this.options.captchaService, this.options.captchaApiKey) : null;
 
     this._delays = [
       0, // the latest request time
@@ -81,22 +103,20 @@ class VKApi {
   }
 
   /**
-   * Gets delay time
-   * @return {Number} Delay value
+   * Returns delay time.
+   * @return  {Number} Delay in ms
    * @private
    */
-  get _delay () {
-    if (this.options.delays === false)
-      return 0;
-
-    let dateNow = Date.now();
-    let delay   = 0;
+  _getRequestDelayTime () {
+    const dateNow = Date.now();
+    let   delay   = 0;
 
     if ((dateNow - this._delays[0]) < 334) {
       delay = 334 - (dateNow - this._delays[0]);
 
-      if ((dateNow - this._delays[1]) <= 0)
+      if ((dateNow - this._delays[1]) <= 0) {
         delay = this._delays[1] - dateNow + 334;
+      }
 
       this._delays[1] = delay + dateNow;
     }
@@ -105,98 +125,312 @@ class VKApi {
   }
 
   /**
-   * VK API request wrapper
-   * @param  {String} url
-   * @param  {Object} params
-   * @return {Promise}
-   * @private
+   * Authorizes a user in the official application
+   * of Vkontakte and returns an access token.
+   * @param  {Object}
+   *   @property {String} [client='android'] Official application (android, iphone)
+   *   @property {String} login              User login
+   *   @property {String} password           User password
+   *   @property {String} [scope=MAX_SCOPE]  Permission scope [https://vk.com/dev/permissions]
+   * @return {Promise => Object}
+   * @public
+   *
+   * https://vk.com/dev/auth_direct
    */
-  _request (url = '', params = {}) {
+  authorize ({ client = 'android', login = this.options.userLogin, password = this.options.userPassword, scope } = {}) {
+    const [ clientId, clientSecret ] = constants['CLIENT_' + client.toUpperCase()] || [];
+
+    if (!clientId || !clientSecret) {
+      return Promise.reject(new Error('"client" is unknown.'));
+    }
+
+    if (!login || !password) {
+      return Promise.reject(new Error('Both "login" and "password" are required.'));
+    }
+
+    // Set the maximum permission scope if no scope provided.
+    if (scope === undefined) {
+      scope = constants.MAX_SCOPE;
+    }
+
+    return fetch('https://oauth.vk.com/token', {
+      qs: {
+        client_id:     clientId,
+        client_secret: clientSecret,
+        grant_type:    'password',
+        password:      password,
+        scope:         scope,
+        username:      login,
+        v:             this.options.apiVersion
+      }
+    })
+      .then(response => response.json())
+      .then(response => {
+        if (response.error) {
+          throw new VkAuthError(response);
+        }
+
+        this.options.accessToken = response.access_token;
+
+        return response;
+      });
+  }
+
+  /**
+   * Calls VKontakte API methods.
+   * @param  {String}         method Method name
+   * @param  {Object}         params Method parameters
+   * @return {Promise => Any}
+   * @public
+   */
+  call (method, params = {}) {
+    if (typeof method !== 'string') {
+      return Promise.reject(new TypeError('"method" must be a string.'));
+    }
+
     this._delays[0] = Date.now();
 
-    return new Promise(resolve => setTimeout(() => resolve(), this._delay))
-      .then(() => apiRequest.call(this, url, params));
+    return new Promise(resolve => setTimeout(() => resolve(), this._getRequestDelayTime()))
+      .then(() => fetch(`https://api.vk.com/method/${method}`, {
+        body:    new URLSearchParams(Object.assign({
+          v:            this.options.apiVersion,
+          access_token: this.options.accessToken || ''
+        }, params)),
+        method:  'POST',
+        timeout: 5000
+      }))
+      .then(response => response.json())
+      .then(response => {
+        if (response.error) {
+          throw new VkApiError(response.error);
+        }
+
+        return response.response || response;
+      })
+      .catch(error => {
+        // Captcha needed.
+        if (error.name === 'VkApiError' && error.code === 14 && this.captchaRecognizer) {
+          return this.captchaRecognizer.recognize(error.captchaImg)
+            .then(result => {
+              params['captcha_sid'] = error.captchaSid;
+              params['captcha_key'] = result;
+
+              return this.call(method, params);
+            });
+        }
+
+        throw error;
+      });
   }
 
   /**
-   * Authorizes the user and gets an access token
-   * @return {Object}
+   * Unstable authorization using user login and password.
+   * @param  {Object}
+   *   @property {Number} appId              Application ID
+   *   @property {String} login              User login
+   *   @property {String} password           User password
+   *   @property {String} [scope=MAX_SCOPE]  Permission scope [https://vk.com/dev/permissions]
+   * @return {Promise => Object}
    * @public
+   *
+   * https://vk.com/dev/implicit_flow_user
    */
-  get auth () {
-    return {
-      /**
-       * User authorization
-       * @param {Object}
-       *   @property {String}       type  'android' or undefined/null
-       *   @property {String/Array} scope
-       * @return {Promise}
-       */
-      user: ({ type, scope } = {}) => {
-        if (!this.options.auth.login || !this.options.auth.pass)
-          return Promise.reject(new Error('"auth.login" or "auth.pass" is undefined'));
-
-        // Set the maximum permissions
-        if (scope === 'all')
-          scope = MAX_SCOPE;
-
-        return (type === 'android' ? authUserAndroid : authUser).call(this, scope);
-      },
-
-      /**
-       * Server authorization
-       * @return {Promise}
-       */
-      server: () => {
-        if (!this.options.app.id || !this.options.app.secret)
-          return Promise.reject(new Error('"app.id" or "app.secret" is undefined'));
-
-        return this._request('https://oauth.vk.com/access_token', {
-          client_id:     this.options.app.id,
-          client_secret: this.options.app.secret,
-          grant_type:    'client_credentials',
-          v:             this.options.version
-        });
-      }
+  logIn ({ appId = this.options.appId, login = this.options.userLogin, password = this.options.userPassword, scope }) {
+    if (!appId) {
+      return Promise.reject(new Error('"appId" is required.'));
     }
+
+    if (!login || !password) {
+      return Promise.reject(new Error('Both "login" and "password" are required.'));
+    }
+
+    // Set the maximum permission scope if no scope provided.
+    if (scope === undefined) {
+      scope = constants.MAX_SCOPE;
+    }
+
+    // "node-fetch" with support of CookieJar.
+    const fetchWithCookies = fetchCookieDecorator(fetch);
+
+    // Случай, когда пользователь получил токен ранее и
+    // при переходе по URL, используемого при его получении,
+    // новый токен выдаётся мгновенно (без авторизации),
+    // недостижим, потому что при завершении работы
+    // функции "logIn" все куки очищаются.
+    //
+    // Однако, возможен случай, когда сразу после авторизации
+    // пользователь попадает на страницу с выданным токеном.
+
+    return fetchWithCookies('https://oauth.vk.com/authorize', {
+      qs: {
+        client_id:     appId,
+        display:       'mobile',
+        redirect_uri:  'https://oauth.vk.com/blank.html',
+        response_type: 'token',
+        scope:         scope,
+        v:             this.options.apiVersion
+      }
+    })
+      .then(response => response.text())
+      .then(body => {
+        const $ = cheerio.load(body);
+
+        const loginForm  = $('form[method="post"]');
+        const formFields = new URLSearchParams();
+
+        loginForm.serializeArray().forEach(field => formFields.set(field.name, field.value));
+
+        // Add "pass" and "email" fields to the login form.
+        formFields.set('pass', password);
+        formFields.set('email', login);
+
+        return fetchWithCookies(loginForm.attr('action'), {
+          body:   formFields,
+          method: 'POST'
+        });
+      })
+      .then(response => {
+        const hashIndex = response.url.indexOf('#');
+
+        if (hashIndex !== -1) {
+          return querystring.parse(response.url.slice(hashIndex + 1));
+        }
+
+        return response.text()
+          .then(body => {
+            const $          = cheerio.load(body);
+            const errorBlock = $('.service_msg_warning');
+
+            if (errorBlock.length) {
+              throw new VkAuthError({
+                error:             'web_login_error',
+                error_description: errorBlock.text()
+              });
+            }
+
+            const authForm = $('form[method="post"]');
+
+            if (!authForm.length) {
+              throw new VkAuthError({
+                error:             'web_login_error',
+                error_description: 'Failed to parse the auth form.'
+              });
+            }
+
+            return fetchWithCookies(authForm.attr('action'), {
+              method: 'POST'
+            });
+          })
+          .then(response => {
+            if (response.status !== 200) {
+              return response.json()
+                .then(json => {
+                  throw new VkAuthError(json);
+                });
+            }
+
+            return querystring.parse(response.url.slice(response.url.indexOf('#') + 1));
+          });
+      })
+      .then(response => {
+        if (response.error) {
+          throw new VkAuthError(response);
+        }
+
+        if (response.access_token) {
+          this.options.accessToken = response.access_token;
+
+          response.expires_in = parseInt(response.expires_in);
+          response.user_id    = parseInt(response.user_id);
+
+          return response;
+        }
+
+        throw new VKAuthError({
+          error:             'web_login_error',
+          error_description: 'Unknown error.'
+        });
+      });
   }
 
   /**
-   * Calls VK API methods
-   * @param  {String} method
-   * @param  {Object} params
+   * Uploads files to vk.com.
+   * @param  {String}  type              File type
+   * @param  {Any}     files             File(s) to upload
+   * @param  {Object}  params            Request params of the first step of uploading
+   * @param  {Object}  afterUploadParams Request params of the second step of uploading
    * @return {Promise}
    * @public
+   *
+   * "files" can be a single file or an array of files.
+   * Single file should be a FS Stream or an object that
+   * contains these properties:
+   *   content<Buffer> The file content
+   *   name<String>    The file name
    */
-  call (method = '', params = {}) {
-    if (typeof method !== 'string')
-      return Promise.reject(new TypeError('"method" must be a string.'));
+  upload (type, files, params = {}, afterUploadParams = {}) {
+    const [ fieldName, stepOneMethod, stepTwoMethod ] = constants['UFT_' + type.toUpperCase()] || [];
 
-    return this._request(`https://api.vk.com/method/${method}`, Object.assign({
-      v: this.options.version,
-      access_token: this.options.token || ''
-    }, params));
-  }
+    // Unknown file type.
+    if (!fieldName) {
+      return Promise.reject(new Error('Unknown file type.'));
+    }
 
-  /**
-   * Uploads files to vk.com
-   * @return {Function}
-   * @public
-   */
-  get upload () {
-    return filesUpload.bind(this);
-  }
+    // No files to upload.
+    if (!files || (Array.isArray(files) && !files.length)) {
+      return Promise.reject(new Error('No files to upload provided.'));
+    }
 
-  /**
-   * Updates options
-   * @param {Object} options
-   * @public
-   */
-  setOptions (options = {}) {
-    this.options = extendOptions(this.options, options);
+    const formData = new FormData();
 
-    return this;
+    if (Array.isArray(files)) {
+      // Only "photo_album" file type supports multiple files uploading.
+      if (type !== 'photo_album') {
+        return Promise.reject(new Error('Only "photo_album" file type can accept a few files.'));
+      }
+
+      // The maximum number of files is 5.
+      if (files.length > 5) {
+        return Promise.reject(new Error('Too many files to upload.'));
+      }
+
+      for (const [index, fileItem] of files.entries()) {
+        formData.append(`file${index + 1}`, fileItem.content || fileItem, fileItem.name);
+      }
+    } else {
+      formData.append(fieldName, files.content || files, files.name);
+    }
+
+    // Step 1: Get an upload URL.
+    return this.call(stepOneMethod, params)
+      .then(response => fetch(response.upload_url, { body: formData, method: 'POST' }))
+      .then(response => response.json())
+      .then(response => {
+        if (response.error) {
+          throw new VkUploadError(response);
+        }
+
+        if (stepTwoMethod) {
+          if (params.album_id) {
+            response.album_id = params.album_id;
+          }
+
+          if (params.group_id) {
+            response.group_id = params.group_id;
+          }
+
+          if (afterUploadParams) {
+            response = Object.assign(response, afterUploadParams);
+          }
+
+          // Step 2: Save the uploaded file.
+          return this.call(stepTwoMethod, response);
+        }
+
+        // "video" file type has no second step.
+        return response;
+      });
   }
 }
 
-module.exports = VKApi;
+module.exports = VkApi;
