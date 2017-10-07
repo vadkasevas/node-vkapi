@@ -1,154 +1,126 @@
 # node-vkapi &middot; [![npm](https://img.shields.io/npm/v/node-vkapi.svg)]() [![npm](https://img.shields.io/npm/dt/node-vkapi.svg)]()
 
-    $ npm install node-vkapi --only=prod --save
-    
-### Features
-
-* Calling all VK API methods
-* Getting user `access_token` using:
-    1. Login and password (dirty way)
-    2. Login and password (via official Android app)
-* Getting server `access_token`
-* Uploading files to vk.com
-* Recognizing captcha
-
-### Example
-
-```javascript
-const VKApi = require('node-vkapi');
-const VK    = new VKApi({
-  app: {
-    id: 1234567890,
-    secret: 'app-secret-key'
-  }, 
-  auth: {
-    login: '+79871234567', 
-    pass: 'password123'
-  }
-});
-
-VK.auth.user({
-  scope: ['audio', 'photos', 'friends', 'wall', 'offline']
-}).then(token => {
-  return VK.call('wall.post', {
-    owner_id: token.user_id, 
-    friends_only: 0, 
-    message: 'Post to wall via node-vkapi'
-  }).then(res => {
-    // wall.post response
-    return 'https://vk.com/wall' + token.user_id + '_' + res.post_id;
-  });
-}).then(link => {
-  // returned data from previous .then
-  console.log('Post was published: ' + link);
-}).catch(error => {
-  // catching errors
-  console.log(error);
-});
+```bash
+$ npm install node-vkapi --only=prod
 ```
 
-### API Reference
+## Возможности
 
-All methods, except `vkapi.setOptions`, return `Promise(response)`.  
-Method `vkapi.setOptions` returns `this`.
+* Простой вызов всех существующих методов API ВКонтакте
+* Авторизация пользователя и получение токена
+  1. *Прямая авторизация* через официальное приложение (Android, iPhone)
+  2. Авторизация через Web-версию сайта
+* Загрузка файлов любого типа
+* Разгадывание капчи с помощью стороннего сервиса
 
-#### new vkapi(options):
-* `options` (Object):
-    * `app` (Object): 
-        * `id` (Number): Application ID
-        * `secret` (String): Application secret-key
-    * `auth` (Object):
-        * `login` (String)
-        * `pass` (String)
-        * `phone` (String): Phone number (Example: +79991234567)
-    * `captcha` (Object):
-        * `service` (String): Captcha service (rucaptcha, anti-captcha, antigate). `anti-captcha` by default
-        * `key` (String): Cpatcha service API-key
-    * `delays` (Boolean): Enable delays (334ms) between requests? `true` by default
-    * `token` (String): Access token
-    * `version` (String): `Latest VK API version` by default
-
-
-You must specify parameter `auth` only if you plan to receive `access_token` by the login and password.
-
-#### vkapi.call(method, params):  
-* `method` (String)
-* `params` (Object):
-    * `< .. method params .. >`
-    * `v` (String): `vkapi.options.version` by default
-    * `access_token` (String): `vkapi.options.token` by default
-
-If the parameter `v` was not passed, then `v` always be equal to the latest version of VK API.  
-You must specify parameter `access_token` if the VK API method requires it, but `vkapi.options.token` is null.
-
-If `ETIMEDOUT` or similar error occurs, function does not return it and tries to resend a request with same params. 
-
-#### vkapi.auth.server():  
-
-Getting server `access_token`. 
-More details: [vk.com/dev/auth_server](https://vk.com/dev/auth_server), [vk.com/dev/secure](https://vk.com/dev/secure)
-
-#### vkapi.auth.user(params):  
-* `params` (Object):
-    * `type` (String): `android` or `null`
-    * `scope` (String or Array): Permissions ([vk.com/dev/permissions](https://vk.com/dev/permissions))
-
-If `type === android`, then access token will be got via official Android app ([vk.com/dev/auth_direct](https://vk.com/dev/auth_direct)).  
-Else access token will be gained "dirty way".
-
-Before using this method recommended to provide a phone number in `vkapi.options.auth.phone` if `login` is an e-mail, because during authorization may occur "security check" when you have to verify your phone number by entering it in the field. Phone number must start with +.  
-
-If `access_token` was got successfully, it will be saved in `vkapi.options.token`.
-
-#### vkapi.upload(type, params):
-* `type` (String): One of given [types of uploads](#types-of-uploads)
-* `params` (Object):
-    * `data` (Readable Stream): or Array of Readable Streams (only for `photo_album` type)
-    * `beforeUpload` (Object): Request parameters for 1st API-call (getting upload url). See [vk.com/dev/upload_files](https://vk.com/dev/upload_files)
-    * `afterUpload` (Object): Request parameters for 2nd API-call (saving file). As example, you can specify `artist` and `title` params to save audiofile with certain title and artist. (See: [vk.com/dev/audio.save](https://vk.com/dev/audio.save))
-
-Keep in mind, that to upload files you must have the appropriate permissions.
-
-##### Types of uploads
-* `audio`
-* `audio_msg` [*](https://github.com/olnaz/node-vkapi/blob/master/lib/files-upload.js#L47)
-* `video`
-* `document`
-* `graffiti` [*](https://github.com/olnaz/node-vkapi/blob/master/lib/files-upload.js#L47)
-* `photo_pm`
-* `photo_wall`
-* `photo_main`
-* `photo_album`
-* `photo_market`
-* `photo_market_album`
-
-##### Example of uploading
-
+## Пример использования
 ```javascript
-// upload 'photo_wall', then post it to own wall
+const vkapi = new (require('node-vkapi'))();
 
-'use strict';
+// Получение некоторых данных о пользователе id1
+// и вывод их в консоль.
 
-const fs    = require('fs');
-const VKApi = require('node-vkapi');
-const VK    = new VKApi({
-  token: 'access_token'
-});
-
-VK.upload('photo_wall', {
-    data: fs.createReadStream('photo.png')
-  })
-  .then(r => {
-    return VK.call('wall.post', {
-      owner_id: r[0].owner_id, 
-      attachments: 'photo' + r[0].owner_id + '_' + r[0].id
-    }).then(res => {
-      return 'https://vk.com/wall' + r[0].owner_id + '_' + res.post_id;
-    });
-  })
-  .then(link => console.log('Your post with photo is here: ' + link))
-  .catch(e => console.log(e));
+vkapi.call('users.get', {
+  user_ids: '1',
+  fields:   'verified,sex'
+})
+  .then(users => console.dir(users[0]))
+  .catch(error => console.error(error));
 ```
 
-#### vkapi.setOptions(options):  
-* `options` (Object): [Constructor object](#new-vkapioptions)
+## Документация
+
+### new VkApi([options])
+* `options<Object>` [Опции](#options) экземпляра *VkApi*
+
+#### Options
+Свойства объекта *options* и их значения по умолчанию.
+
+```javascript
+{
+  accessToken:    null,           // <String> Ключ доступа
+  apiVersion:     '5.68',         // <String> Версия API
+  appId:          null,           // <Number> ID приложения ВКонтакте
+  appSecret:      null,           // <String> Секретный ключ приложения ВКонтакте
+  captchaApiKey:  null,           // <String> API ключ сервиса по распознаванию капчи
+  captchaService: 'anti-captcha', // <String> Сервис по распознаванию капчи (anti-captcha, antigate, rucaptcha)
+  userLogin:      null,           // <String> Логин пользователя
+  userPassword:   null            // <String> Пароль пользователя
+}
+```
+
+### vkapi.authorize(params)
+* `params<Object>` [Параметры](#params) запроса
+
+Осуществляет *прямую авторизацию*, т.е. авторизует пользователя в одном из официальных приложений ВКонтакте, используя логин и пароль пользователя.
+
+#### Params
+Параметры запроса на прямую авторизацию и их значения по умолчанию.
+
+```javascript
+{
+  client:   'android',                  // <String> Клиент (android, iphone)
+  login:    vkapi.options.userLogin,    // <String> Логин пользователя
+  password: vkapi.options.userPassword, // <String> Пароль пользователя
+  scope:    MAX_SCOPE                   // <String> Строка разрешений. По умолчанию будут запрашиваться все возможные разрешения
+}
+```
+
+### vkapi.call(method[, params])
+* `method<String>` Название метода
+* `params<Object>` Параметры метода
+
+Вызывает методы API ВКонтакте.
+
+### vkapi.logIn(params)
+* `params<Object>` [Параметры](#params-1) запроса
+
+Авторизует пользователя через мобильную Web-версию ВКонтакте.  
+При этом есть возможность использовать ID **неофициального** приложения.
+
+#### Params
+Параметры запроса на авторизацию через Web-версию и их значения по умолчанию.
+
+```javascript
+{
+  appId:    vkapi.options.appId,        // <Number> ID приложения ВКонтакте
+  login:    vkapi.options.userLogin,    // <String> Логин пользователя
+  password: vkapi.options.userPassword, // <String> Пароль пользователя
+  scope:    MAX_SCOPE                   // <String> Строка разрешений. По умолчанию будут запрашиваться все возможные разрешения
+}
+```
+
+### vkapi.upload(type, files[, params[, afterUploadParams]])
+* `type<String>` [Тип загрузки](#Типы-загрузок)
+* `files<Any>` [Файл(ы)](#files) к загрузке
+* `params<Object>` Параметры запроса на получение URL для загрузки. [Подробнее](https://vk.com/dev/upload_files)
+* `afterUploadParams<Object>` Параметры запроса на сохранение загруженного файла. [Подробнее](https://vk.com/dev/upload_files)
+
+Выполняет загрузку файлов во ВКонтакте.  
+
+> Не забывайте, что для загрузки файлов вы должны иметь соответствующие разрешения.
+
+#### Типы загрузок
+* `audio` [Аудиозапись](https://vk.com/dev/upload_files_2?f=8.+%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0+%D0%B0%D1%83%D0%B4%D0%B8%D0%BE%D0%B7%D0%B0%D0%BF%D0%B8%D1%81%D0%B5%D0%B9)
+* `cover` [Обложка сообщества](https://vk.com/dev/upload_files_2?f=11.%2B%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%2B%D0%BE%D0%B1%D0%BB%D0%BE%D0%B6%D0%BA%D0%B8%2B%D1%81%D0%BE%D0%BE%D0%B1%D1%89%D0%B5%D1%81%D1%82%D0%B2%D0%B0)
+* `document` [Документ](https://vk.com/dev/upload_files_2?f=10.%20%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%20%D0%B4%D0%BE%D0%BA%D1%83%D0%BC%D0%B5%D0%BD%D1%82%D0%BE%D0%B2)
+* `document_pm` Документ в личное сообщение
+* `document_wall` Документ на стену
+* `photo_album` [Фотография(ии) в альбом](https://vk.com/dev/upload_files?f=1.%2B%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%2B%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%B9%2B%D0%B2%2B%D0%B0%D0%BB%D1%8C%D0%B1%D0%BE%D0%BC)
+* `photo_main` [Главная фотография](https://vk.com/dev/upload_files?f=3.%20%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%20%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%BE%D0%B9%20%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%B8%20%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D0%B5%D0%BB%D1%8F%20%D0%B8%D0%BB%D0%B8%20%D1%81%D0%BE%D0%BE%D0%B1%D1%89%D0%B5%D1%81%D1%82%D0%B2%D0%B0)
+* `photo_market` [Фотография для товара](https://vk.com/dev/upload_files_2?f=6.%2B%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%2B%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%B8%2B%D0%B4%D0%BB%D1%8F%2B%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D0%B0)
+* `photo_market_album` [Фотография для подборки товаров](https://vk.com/dev/upload_files_2?f=7.%20%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%20%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%B8%20%D0%B4%D0%BB%D1%8F%20%D0%BF%D0%BE%D0%B4%D0%B1%D0%BE%D1%80%D0%BA%D0%B8%20%D1%82%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2)
+* `photo_pm` [Фотография в личное сообщение](https://vk.com/dev/upload_files?f=4.%2B%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%2B%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%B8%2B%D0%B2%2B%D0%BB%D0%B8%D1%87%D0%BD%D0%BE%D0%B5%2B%D1%81%D0%BE%D0%BE%D0%B1%D1%89%D0%B5%D0%BD%D0%B8%D0%B5)
+* `photo_wall` [Фотография на стену](https://vk.com/dev/upload_files?f=2.%20%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%20%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D0%B9%20%D0%BD%D0%B0%20%D1%81%D1%82%D0%B5%D0%BD%D1%83)
+* `video` [Видеозапись](https://vk.com/dev/upload_files_2?f=9.%2B%D0%97%D0%B0%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%2B%D0%B2%D0%B8%D0%B4%D0%B5%D0%BE%D0%B7%D0%B0%D0%BF%D0%B8%D1%81%D0%B5%D0%B9)
+
+#### Files
+Переменная **files** может быть как единственным файлом к загрузке, так и массивом файлов (только для типа *photo_album*). Каждый отдельный файл должен представлять собой *FS Stream* либо объект, который содержит следующие свойства:  
+
+| Свойство | Тип    |                  |
+|----------|:-------|------------------|
+| content  | Buffer | Содержимое файла |
+| name     | String | Имя файла        |
+
+#### Пример загрузки файла
+Примеры загрузки файлов вы можете найти в папке [examples](examples).
