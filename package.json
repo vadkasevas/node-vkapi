@@ -1,7 +1,7 @@
 {
   "name": "node-vkapi",
   "version": "2.1.0",
-  "description": "Node.js SDK for VKontakte API (vk.com)",
+  "description": "Node.js SDK for Vkontakte API (vk.com)",
   "author": "olnaz",
   "repository": {
     "type": "git",
@@ -9,7 +9,7 @@
   },
   "main": "./src/vkapi.js",
   "scripts": {
-    "test": "./node_modules/.bin/ava"
+    "test": "jest"
   },
   "keywords": [
     "vk",
@@ -20,15 +20,15 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "cheerio": "^0.20.0",
-    "node-fetch": "^1.7.3",
-    "request": "^2.79.0",
-    "request-promise": "^2.0.1"
+    "cheerio": "^1.0.0-rc.2",
+    "fetch-cookie": "^0.7.0",
+    "form-data": "^2.3.1",
+    "node-fetch": "^1.7.3"
   },
   "engines": {
-    "node": ">=6.0.0"
+    "node": ">=8.6.0"
   },
   "devDependencies": {
-    "ava": "^0.17.0"
+    "jest": "^21.2.1"
   }
 }
