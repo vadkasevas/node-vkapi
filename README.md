@@ -129,6 +129,17 @@ vkapi.call('users.get', {
 #### Как загружать граффити и аудио-сообщения?
 Для того, чтобы загрузить граффити или аудио-сообщение, нужно указать `document` как тип загрузки, а в параметрах запроса `params` указать тип загружаемого документа: для граффити — это `graffiti`, для аудио-сообщения — `audio_message`.
 
+```javascript
+// Простейший пример загрузки аудио-сообщения
+
+const fs    = require('fs');
+const vkapi = new (require('node-vkapi'))({ accessToken: 'your_access_token' });
+
+vkapi.upload('document', fs.createReadStream('./path/to/audiofile.mp3'), { type: 'audio_message' })
+  .then(response => console.dir(response))
+  .catch(error => console.error(error));
+```
+
 #### Пример загрузки файла
 Примеры загрузки файлов вы можете найти в папке [examples](examples).
 
