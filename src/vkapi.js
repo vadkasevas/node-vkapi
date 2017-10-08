@@ -185,7 +185,7 @@ class VkApi {
    */
   call (method, params = {}) {
     if (!method || typeof method !== 'string') {
-      return Promise.reject(new TypeError('"method" must be a string.'));
+      return Promise.reject(new Error('"method" must be a string.'));
     }
 
     this._delays[0] = Date.now();
@@ -235,7 +235,7 @@ class VkApi {
    *
    * https://vk.com/dev/implicit_flow_user
    */
-  logIn ({ appId = this.options.appId, login = this.options.userLogin, password = this.options.userPassword, scope }) {
+  logIn ({ appId = this.options.appId, login = this.options.userLogin, password = this.options.userPassword, scope } = {}) {
     if (!appId) {
       return Promise.reject(new Error('"appId" is required.'));
     }
@@ -346,7 +346,7 @@ class VkApi {
           return response;
         }
 
-        throw new VKAuthError({
+        throw new VkAuthError({
           error:             'web_login_error',
           error_description: 'Unknown error.'
         });
@@ -368,7 +368,7 @@ class VkApi {
    *   content<Buffer> The file content
    *   name<String>    The file name
    */
-  upload (type, files, params = {}, afterUploadParams = {}) {
+  upload (type = '', files, params = {}, afterUploadParams = {}) {
     const [ fieldName, stepOneMethod, stepTwoMethod ] = constants['UFT_' + type.toUpperCase()] || [];
 
     // Unknown file type.
