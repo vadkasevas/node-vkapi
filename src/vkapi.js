@@ -88,7 +88,7 @@ class VkApi {
      * Options.
      * @type {Object}
      */
-    this.options = Object.assign(defaultOptions, options);
+    this.options = Object.assign({}, defaultOptions, options);
 
     /**
      * CaptchaRecognizer instance.
