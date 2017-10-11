@@ -13,8 +13,8 @@
  * Module dependencies.
  * @private
  */
-const { URLSearchParams } = require('url');
-const fetch               = require('./fetch');
+const querystring = require('querystring');
+const fetch       = require('./fetch');
 
 class CaptchaRecognizer {
   /**
@@ -56,11 +56,12 @@ class CaptchaRecognizer {
       .then(image => image.buffer())
       .then(imageBuffer => imageBuffer.toString('base64'))
       .then(imageBase64 => fetch(this.uploadUrl, {
-        body:   new URLSearchParams({
+        body:   querystring.stringify({
           body:   imageBase64,
           key:    this.apiKey,
           method: 'base64'
         }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         method: 'POST'
       }))
       .then(response => response.text())

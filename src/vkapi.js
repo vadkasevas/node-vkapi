@@ -5,7 +5,6 @@
  * @private
  */
 const querystring          = require('querystring');
-const { URLSearchParams }  = require('url');
 const cheerio              = require('cheerio');
 const fetchCookieDecorator = require('fetch-cookie/node-fetch');
 const FormData             = require('form-data');
@@ -192,10 +191,11 @@ class VkApi {
 
     return new Promise(resolve => setTimeout(() => resolve(), this._getRequestDelayTime()))
       .then(() => fetch(`https://api.vk.com/method/${method}`, {
-        body:    new URLSearchParams(Object.assign({
+        body:    querystring.stringify(Object.assign({
           v:            this.options.apiVersion,
           access_token: this.options.accessToken || ''
         }, params)),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         method:  'POST',
         timeout: 5000
       }))
@@ -276,17 +276,18 @@ class VkApi {
         const $ = cheerio.load(body);
 
         const loginForm  = $('form[method="post"]');
-        const formFields = new URLSearchParams();
+        const formFields = Object.create(null);
 
-        loginForm.serializeArray().forEach(field => formFields.set(field.name, field.value));
+        loginForm.serializeArray().forEach(field => (formFields[field.name] = field.value));
 
         // Add "pass" and "email" fields to the login form.
-        formFields.set('pass', password);
-        formFields.set('email', login);
+        formFields['pass']  = password;
+        formFields['email'] = login;
 
         return fetchWithCookies(loginForm.attr('action'), {
-          body:   formFields,
-          method: 'POST'
+          body:    querystring.stringify(formFields),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          method:  'POST'
         });
       })
       .then(response => {
