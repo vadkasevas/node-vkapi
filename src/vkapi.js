@@ -205,6 +205,13 @@ class VkApi {
           throw new VkApiError(response.error);
         }
 
+        // Return full response object, because it 
+        // can contain "execute_errors" array which 
+        // is important when "execute" method is called.
+        if (method === 'execute') {
+          return response;
+        }
+
         return response.response || response;
       })
       .catch(error => {

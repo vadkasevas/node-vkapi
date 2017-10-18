@@ -118,6 +118,23 @@ describe('VkApi', () => {
         postToWall(`message ${i}`);
       }
     });
+
+    test('should return full response object for "execute" method', () => {
+      expect.assertions(5);
+
+      return vkapiWithToken.call('execute', {
+        // Calling this method without any params
+        // will throw an "in-execute" error
+        code: 'return [API.docs.search()];'
+      })
+        .then(response => {
+          expect(typeof response).toBe('object');
+          expect(response).toHaveProperty('response');
+          expect(response).toHaveProperty('execute_errors');
+          expect(Array.isArray(response.response)).toBeTruthy();
+          expect(Array.isArray(response.execute_errors)).toBeTruthy();
+        });
+    });
   });
 
   describe('logIn()', () => {
