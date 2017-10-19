@@ -74,6 +74,8 @@ vkapi.call('users.get', {
 
 Вызывает методы API ВКонтакте.
 
+> При вызове метода `execute` будет возвращён полный ответ от ВКонтакте. [Подробнее](https://github.com/olnaz/node-vkapi/issues/16)
+
 ### vkapi.logIn(params)
 * `params<Object>` [Параметры](#params-1) запроса
 * Returns [`Promise<AuthResponseObject>`](#Формат-ответа-на-запрос-авторизации)
