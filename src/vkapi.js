@@ -95,6 +95,10 @@ class VkApi {
      */
     this.captchaRecognizer = this.options.captchaApiKey ? new CaptchaRecognizer(this.options.captchaService, this.options.captchaApiKey) : null;
 
+    /**
+     * Request delays.
+     * @type {Array of Number}
+     */
     this._delays = [
       0, // the latest request time
       0  // the latest delayed request time
