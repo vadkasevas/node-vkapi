@@ -140,7 +140,7 @@ class VkApi {
    *
    * https://vk.com/dev/auth_direct
    */
-  authorize ({ client = 'android', login = this.options.userLogin, password = this.options.userPassword, scope } = {}) {
+  authorize ({ client = 'android', login = this.options.userLogin, password = this.options.userPassword, scope = constants.MAX_SCOPE } = {}) {
     const [ clientId, clientSecret ] = constants['CLIENT_' + client.toUpperCase()] || [];
 
     if (!clientId || !clientSecret) {
@@ -149,11 +149,6 @@ class VkApi {
 
     if (!login || !password) {
       return Promise.reject(new Error('Both "login" and "password" are required.'));
-    }
-
-    // Set the maximum permission scope if no scope provided.
-    if (scope === undefined) {
-      scope = constants.MAX_SCOPE;
     }
 
     return fetch('https://oauth.vk.com/token', {
@@ -246,18 +241,13 @@ class VkApi {
    *
    * https://vk.com/dev/implicit_flow_user
    */
-  logIn ({ appId = this.options.appId, login = this.options.userLogin, password = this.options.userPassword, scope } = {}) {
+  logIn ({ appId = this.options.appId, login = this.options.userLogin, password = this.options.userPassword, scope = constants.MAX_SCOPE } = {}) {
     if (!appId) {
       return Promise.reject(new Error('"appId" is required.'));
     }
 
     if (!login || !password) {
       return Promise.reject(new Error('Both "login" and "password" are required.'));
-    }
-
-    // Set the maximum permission scope if no scope provided.
-    if (scope === undefined) {
-      scope = constants.MAX_SCOPE;
     }
 
     // "node-fetch" with support of CookieJar.
