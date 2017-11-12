@@ -298,6 +298,13 @@ class VkApi {
           return querystring.parse(response.url.slice(hashIndex + 1));
         }
 
+        if (response.url.includes('act=blocked')) {
+          throw new VkAuthError({
+            error:             'web_login_error',
+            error_description: 'Account is blocked.' 
+          });
+        }
+
         return response.text()
           .then(body => {
             const $          = cheerio.load(body);
