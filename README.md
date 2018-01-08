@@ -1,4 +1,4 @@
-# node-vkapi &middot; [![npm](https://img.shields.io/npm/v/node-vkapi.svg)]() [![npm](https://img.shields.io/npm/dt/node-vkapi.svg)]()
+# node-vkapi &middot; [![npm](https://img.shields.io/npm/v/node-vkapi.svg)](http://npmjs.org/node-vkapi) [![npm](https://img.shields.io/npm/dt/node-vkapi.svg)](http://npmjs.org/node-vkapi)
 
 ```bash
 $ npm install node-vkapi --only=prod
@@ -74,7 +74,7 @@ vkapi.call('users.get', {
 
 Вызывает методы API ВКонтакте.
 
-> При вызове метода `execute` будет возвращён полный ответ от ВКонтакте. [Подробнее](https://github.com/olnaz/node-vkapi/issues/16)
+> При вызове метода `execute` будет возвращён полный ответ от ВКонтакте. [Подробнее](https://github.com/olnazx/node-vkapi/issues/16)
 
 ### vkapi.logIn(params)
 * `params<Object>` [Параметры](#params-1) запроса
