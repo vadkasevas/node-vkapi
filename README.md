@@ -4,6 +4,8 @@
 $ npm install node-vkapi --only=prod
 ```
 
+> Refer to [README_EN.md](README_EN.md) for english docs.
+
 ## Возможности
 
 * Простой вызов всех существующих методов API ВКонтакте
