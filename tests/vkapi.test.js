@@ -26,6 +26,12 @@ describe('VkApi', () => {
     expect((new VkApi({ appSecret: 'appSecretKey' })).options.appSecret).toBe('appSecretKey');
   });
 
+  test('should has a correct base delay', () => {
+    expect(vkapiDefault.options.baseDelay).toBe(334);
+    // 50 is 1/20 of a second and it's used in an authorization via a community token
+    expect((new VkApi({ baseDelay: 50 })).options.baseDelay).toBe(50);
+  });
+
   test('should correctly initialize CaptchaRecognizer', () => {
     const vkapiWithCaptchaRecognizer = new VkApi({ captchaApiKey: 'captchaServiceApiKey' });
 

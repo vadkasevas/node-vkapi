@@ -73,7 +73,15 @@ const defaultOptions = {
    * User password.
    * @type {String}
    */
-  userPassword: null
+  userPassword: null,
+
+  /**
+   * Base delay between API calls.
+   * @type {Number}
+   *
+   * 334 is ~1/3 of a second and it's used in an authorization via an user token.
+   */
+  baseDelay: 334
 }
 
 class VkApi {
@@ -114,11 +122,11 @@ class VkApi {
     const dateNow = Date.now();
     let   delay   = 0;
 
-    if ((dateNow - this._delays[0]) < 334) {
-      delay = 334 - (dateNow - this._delays[0]);
+    if ((dateNow - this._delays[0]) < this.options.baseDelay) {
+      delay = this.options.baseDelay - (dateNow - this._delays[0]);
 
       if ((dateNow - this._delays[1]) <= 0) {
-        delay = this._delays[1] - dateNow + 334;
+        delay = this._delays[1] - dateNow + this.options.baseDelay;
       }
 
       this._delays[1] = delay + dateNow;

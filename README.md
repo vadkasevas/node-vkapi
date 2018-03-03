@@ -45,7 +45,8 @@ vkapi.call('users.get', {
   captchaApiKey:  null,           // <String> API ключ сервиса по распознаванию капчи
   captchaService: 'anti-captcha', // <String> Сервис по распознаванию капчи (anti-captcha, antigate, rucaptcha)
   userLogin:      null,           // <String> Логин пользователя
-  userPassword:   null            // <String> Пароль пользователя
+  userPassword:   null,           // <String> Пароль пользователя
+  baseDelay:      334             // <Number> Базовая задержка между вызовами API (334 составляет ~1/3 секунды и используется для авторизации через токен пользователя)
 }
 ```
 

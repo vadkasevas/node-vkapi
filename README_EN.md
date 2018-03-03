@@ -44,7 +44,8 @@ Properties of the *options* object and their defaults.
   captchaApiKey:  null,           // <String> API key of captcha recognizing service
   captchaService: 'anti-captcha', // <String> Captcha recognizing service (anti-captcha, antigate, rucaptcha)
   userLogin:      null,           // <String> User login
-  userPassword:   null            // <String> User password
+  userPassword:   null,           // <String> User password
+  baseDelay:      334             // <Number> Base delay between API calls (334 is ~1/3 of a second and it's used in an authorization via an user token)
 }
 ```
 
