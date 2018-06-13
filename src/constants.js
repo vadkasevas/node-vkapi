@@ -1,6 +1,4 @@
-'use strict';
-
-module.exports = {
+constants = {
   /**
    * Client ID and secret key of official
    * applications for Android and iPhone.

@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Module dependencies.
  * @private
@@ -20,7 +18,7 @@ const MAX_ATTEMPTS = 3;
  * @return {Promise}
  * @public
  */
-function fetchWithAutoRetry (url = '', options = {}, _attempt = 1) {
+fetchWithAutoRetry = function (url = '', options = {}, _attempt = 1) {
   let urlWithQueryString = url;
 
   // Add querystring params to the URL.
@@ -51,4 +49,4 @@ function fetchWithAutoRetry (url = '', options = {}, _attempt = 1) {
     });
 }
 
-module.exports = fetchWithAutoRetry;
+

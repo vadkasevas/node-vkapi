@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * CaptchaRecognizer is used to recognize VK captcha via one of supported services.
  *
@@ -13,10 +11,9 @@
  * Module dependencies.
  * @private
  */
-const querystring = require('querystring');
-const fetch       = require('./fetch');
-
-class CaptchaRecognizer {
+const querystring = Npm.require('querystring');
+fetch =fetchWithAutoRetry;
+CaptchaRecognizer = class CaptchaRecognizer {
   /**
    * Constructor.
    * @param  {String} service Service name
@@ -120,5 +117,3 @@ class CaptchaRecognizer {
       });
   }
 }
-
-module.exports = CaptchaRecognizer;

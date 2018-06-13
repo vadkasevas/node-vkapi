@@ -1,6 +1,4 @@
-'use strict';
-
-class VkUploadError extends Error {
+VkUploadError = class VkUploadError extends Error {
   /**
    * Constructor.
    * @param  {Object} error Vkontakte error object
@@ -16,4 +14,4 @@ class VkUploadError extends Error {
   }
 }
 
-module.exports = VkUploadError;
+export { VkUploadError };
